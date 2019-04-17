@@ -176,64 +176,78 @@ class LMMultiFileIterator(LMShuffledIterator):
 
 
 class Corpus(object):
-    def __init__(self, path, dataset, *args, **kwargs):
+    def __init__(self, path, dataset, trainfname, validfname, testfname, *args, **kwargs):
         self.dataset = dataset
         self.vocab = Vocab(*args, **kwargs)
 
         if self.dataset in ['ptb', 'wt2', 'enwik8', 'text8']:
-            self.vocab.count_file(os.path.join(path, 'train.txt'))
-            self.vocab.count_file(os.path.join(path, 'valid.txt'))
-            self.vocab.count_file(os.path.join(path, 'test.txt'))
+            self.vocab.count_file(os.path.join(path, trainfname))
+            self.vocab.count_file(os.path.join(path, validfname))
+            self.vocab.count_file(os.path.join(path, testfname))
         elif self.dataset == 'wt103':
-            self.vocab.count_file(os.path.join(path, 'train.txt'))
+            self.vocab.count_file(os.path.join(path, trainfname))
         elif self.dataset == 'lm1b':
             train_path_pattern = os.path.join(
                 path, '1-billion-word-language-modeling-benchmark-r13output',
                 'training-monolingual.tokenized.shuffled', 'news.en-*')
             train_paths = glob.glob(train_path_pattern)
             # the vocab will load from file when build_vocab() is called
+        else:
+            self.vocab.count_file(os.path.join(path, trainfname))
+            self.vocab.count_file(os.path.join(path, validfname))
+            self.vocab.count_file(os.path.join(path, testfname))
 
         self.vocab.build_vocab()
 
         if self.dataset in ['ptb', 'wt2', 'wt103']:
             self.train = self.vocab.encode_file(
-                os.path.join(path, 'train.txt'), ordered=True)
+                os.path.join(path, trainfname), ordered=True)
             self.valid = self.vocab.encode_file(
-                os.path.join(path, 'valid.txt'), ordered=True)
+                os.path.join(path, validfname), ordered=True)
             self.test  = self.vocab.encode_file(
-                os.path.join(path, 'test.txt'), ordered=True)
+                os.path.join(path, testfname), ordered=True)
         elif self.dataset in ['enwik8', 'text8']:
             self.train = self.vocab.encode_file(
-                os.path.join(path, 'train.txt'), ordered=True, add_eos=False)
+                os.path.join(path, trainfname), ordered=True, add_eos=False)
             self.valid = self.vocab.encode_file(
-                os.path.join(path, 'valid.txt'), ordered=True, add_eos=False)
+                os.path.join(path, validfname), ordered=True, add_eos=False)
             self.test  = self.vocab.encode_file(
-                os.path.join(path, 'test.txt'), ordered=True, add_eos=False)
+                os.path.join(path, testfname), ordered=True, add_eos=False)
         elif self.dataset == 'lm1b':
             self.train = train_paths
             self.valid = self.vocab.encode_file(
-                os.path.join(path, 'valid.txt'), ordered=False, add_double_eos=True)
+                os.path.join(path, validfname), ordered=False, add_double_eos=True)
             self.test  = self.vocab.encode_file(
-                os.path.join(path, 'test.txt'), ordered=False, add_double_eos=True)
+                os.path.join(path, testfname), ordered=False, add_double_eos=True)
+        else:
+            self.train = self.vocab.encode_file(
+                os.path.join(path, trainfname), ordered=True)
+            self.valid = self.vocab.encode_file(
+                os.path.join(path, validfname), ordered=True)
+            self.test  = self.vocab.encode_file(
+                os.path.join(path, testfname), ordered=True)
 
     def get_iterator(self, split, *args, **kwargs):
         if split == 'train':
-            if self.dataset in ['ptb', 'wt2', 'wt103', 'enwik8', 'text8']:
-                data_iter = LMOrderedIterator(self.train, *args, **kwargs)
-            elif self.dataset == 'lm1b':
+            if self.dataset == 'lm1b':
                 kwargs['shuffle'] = True
                 data_iter = LMMultiFileIterator(self.train, self.vocab, *args, **kwargs)
+            elif self.dataset in ['ptb', 'wt2', 'wt103', 'enwik8', 'text8']:
+                data_iter = LMOrderedIterator(self.train, *args, **kwargs)
+            else:
+                data_iter = LMOrderedIterator(self.train, *args, **kwargs)
         elif split in ['valid', 'test']:
             data = self.valid if split == 'valid' else self.test
-            if self.dataset in ['ptb', 'wt2', 'wt103', 'enwik8', 'text8']:
-                data_iter = LMOrderedIterator(data, *args, **kwargs)
-            elif self.dataset == 'lm1b':
+            if self.dataset == 'lm1b':
                 data_iter = LMShuffledIterator(data, *args, **kwargs)
-
+            elif self.dataset in ['ptb', 'wt2', 'wt103', 'enwik8', 'text8']:
+                data_iter = LMOrderedIterator(data, *args, **kwargs)
+            else:
+                data_iter = LMOrderedIterator(data, *args, **kwargs)
         return data_iter
 
 
-def get_lm_corpus(datadir, dataset):
+def get_lm_corpus(datadir, dataset, trainfname, validfname, testfname, *args, **kwargs):
     fn = os.path.join(datadir, 'cache.pt')
     if os.path.exists(fn):
         print('Loading cached dataset...')
@@ -242,7 +256,7 @@ def get_lm_corpus(datadir, dataset):
         print('Producing dataset {}...'.format(dataset))
         kwargs = {}
         if dataset in ['wt103', 'wt2']:
-            kwargs['special'] = ['<eos>']
+            kwargs['special'] = ['<eos>','<unk>']
             kwargs['lower_case'] = False
         elif dataset == 'ptb':
             kwargs['special'] = ['<eos>']
@@ -253,8 +267,11 @@ def get_lm_corpus(datadir, dataset):
             kwargs['vocab_file'] = os.path.join(datadir, '1b_word_vocab.txt')
         elif dataset in ['enwik8', 'text8']:
             pass
+        else:
+            kwargs['special'] = ['<eos>']
+            kwargs['lower_case'] = False
 
-        corpus = Corpus(datadir, dataset, **kwargs)
+        corpus = Corpus(datadir, dataset, trainfname, validfname, testfname, **kwargs)
         torch.save(corpus, fn)
 
     return corpus

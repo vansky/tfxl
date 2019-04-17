@@ -19,8 +19,16 @@ from utils.data_parallel import BalancedDataParallel
 parser = argparse.ArgumentParser(description='PyTorch Transformer Language Model')
 parser.add_argument('--data', type=str, default='../data/wikitext-103',
                     help='location of the data corpus')
-parser.add_argument('--dataset', type=str, default='wt103',
-                    choices=['wt103', 'lm1b', 'enwik8', 'text8'],
+parser.add_argument('--trainfname', type=str, default='train.txt',
+                    help='name of training corpus')
+parser.add_argument('--validfname', type=str, default='valid.txt',
+                    help='name of validation corpus')
+parser.add_argument('--testfname', type=str, default='test.txt',
+                    help='name of test corpus')
+parser.add_argument('--vocab_file', type=str, default=None,
+                    help='name of vocab file')
+parser.add_argument('--dataset', type=str, default='custom',
+                    choices=['wt103', 'lm1b', 'enwik8', 'text8','custom'],
                     help='dataset name')
 parser.add_argument('--n_layer', type=int, default=12,
                     help='number of total layers')
@@ -102,7 +110,7 @@ parser.add_argument('--multi_gpu', action='store_true',
                     help='use multiple GPU')
 parser.add_argument('--log-interval', type=int, default=200,
                     help='report interval')
-parser.add_argument('--eval-interval', type=int, default=4000,
+parser.add_argument('--eval_interval', type=int, default=4000,
                     help='evaluation interval')
 parser.add_argument('--work_dir', default='LM-TFM', type=str,
                     help='experiment directory.')
@@ -181,7 +189,7 @@ device = torch.device('cuda' if args.cuda else 'cpu')
 ###############################################################################
 # Load data
 ###############################################################################
-corpus = get_lm_corpus(args.data, args.dataset)
+corpus = get_lm_corpus(args.data, args.dataset, args.trainfname, args.validfname, args.testfname, vocab_file=args.vocab_file)
 ntokens = len(corpus.vocab)
 args.n_token = ntokens
 
@@ -534,16 +542,16 @@ log_start_time = time.time()
 eval_start_time = time.time()
 
 # At any point you can hit Ctrl + C to break out of training early.
-try:
-    for epoch in itertools.count(start=1):
-        train()
-        if train_step == args.max_step:
-            logging('-' * 100)
-            logging('End of training')
-            break
-except KeyboardInterrupt:
-    logging('-' * 100)
-    logging('Exiting from training early')
+#try:
+for epoch in itertools.count(start=1):
+    train()
+    if train_step == args.max_step:
+        logging('-' * 100)
+        logging('End of training')
+        break
+#except KeyboardInterrupt:
+#    logging('-' * 100)
+#    logging('Exiting from training early')
 
 # Load the best saved model.
 with open(os.path.join(args.work_dir, 'model.pt'), 'rb') as f:

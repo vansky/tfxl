@@ -66,7 +66,7 @@ class Vocab(object):
             for line in f:
                 symb = line.strip().split()[0]
                 self.add_symbol(symb)
-        self.unk_idx = self.sym2idx['<UNK>']
+        self.unk_idx = self.sym2idx['<unk>']
 
     def build_vocab(self):
         if self.vocab_file:
