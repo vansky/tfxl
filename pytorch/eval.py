@@ -16,6 +16,12 @@ parser.add_argument('--data', type=str, default='../data/wikitext-103',
 parser.add_argument('--dataset', type=str, default='wt103',
                     choices=['wt103', 'lm1b', 'enwik8', 'text8'],
                     help='dataset name')
+parser.add_argument('--trainfname', type=str, default='train.txt',
+                    help='name of training corpus')
+parser.add_argument('--validfname', type=str, default='valid.txt',
+                    help='name of validation corpus')
+parser.add_argument('--testfname', type=str, default='test.txt',
+                    help='name of test corpus')
 parser.add_argument('--split', type=str, default='all',
                     choices=['all', 'valid', 'test'],
                     help='which split to evaluate')
@@ -47,7 +53,7 @@ logging = get_logger(os.path.join(args.work_dir, 'log.txt'),
                      log_=not args.no_log)
 
 # Load dataset
-corpus = get_lm_corpus(args.data, args.dataset)
+corpus = get_lm_corpus(args.data, args.dataset, args.trainfname, args.validfname, args.testfname)
 ntokens = len(corpus.vocab)
 
 va_iter = corpus.get_iterator('valid', args.batch_size, args.tgt_len,
@@ -91,32 +97,54 @@ def evaluate(eval_iter):
             total_time, 1000 * total_time / (idx+1)))
     return total_loss / total_len
 
+def evaluate_words(eval_iter):
+    # Turn on evaluation mode which disables dropout.
+    model.eval()
+    total_len, total_loss = 0, 0.
+    start_time = time.time()
+    losses = []
+    with torch.no_grad():
+        mems = tuple()
+        for idx, (data, target, seq_len) in enumerate(eval_iter):
+            ret = model(data, target, *mems)
+            loss, mems = ret[0], ret[1:]
+            losses.append(loss)
+        total_time = time.time() - start_time
+    logging('Time : {:.2f}s, {:.2f}ms/segment'.format(
+            total_time, 1000 * total_time / (idx+1)))
+    return losses
+
 # Run on test data.
-if args.split == 'all':
-    test_loss = evaluate(te_iter)
-    valid_loss = evaluate(va_iter)
-elif args.split == 'valid':
-    valid_loss = evaluate(va_iter)
-    test_loss = None
-elif args.split == 'test':
-    test_loss = evaluate(te_iter)
-    valid_loss = None
-
-def format_log(loss, split):
-    if args.dataset in ['enwik8', 'text8']:
-        log_str = '| {0} loss {1:5.2f} | {0} bpc {2:9.5f} '.format(
-            split, loss, loss / math.log(2))
-    else:
-        log_str = '| {0} loss {1:5.2f} | {0} ppl {2:9.3f} '.format(
-            split, loss, math.exp(loss))
-    return log_str
-
-log_str = ''
-if valid_loss is not None:
-    log_str += format_log(valid_loss, 'valid')
-if test_loss is not None:
-    log_str += format_log(test_loss, 'test')
-
+#if args.split == 'all':
+#    test_loss = evaluate(te_iter)
+#    valid_loss = evaluate(va_iter)
+#elif args.split == 'valid':
+#    valid_loss = evaluate(va_iter)
+#    test_loss = None
+#elif args.split == 'test':
 logging('=' * 100)
-logging(log_str)
+logging('Testing')
+test_losses = evaluate_words(te_iter)
 logging('=' * 100)
+logging('surp')
+for loss in test_losses:
+    logging(str(loss))
+
+#def format_log(loss, split):
+#    if args.dataset in ['enwik8', 'text8']:
+#        log_str = '| {0} loss {1:5.2f} | {0} bpc {2:9.5f} '.format(
+#            split, loss, loss / math.log(2))
+#    else:
+#        log_str = '| {0} loss {1:5.2f} | {0} ppl {2:9.3f} '.format(
+#            split, loss, math.exp(loss))
+#    return log_str
+#
+#log_str = ''
+#if valid_loss is not None:
+#    log_str += format_log(valid_loss, 'valid')
+#if test_loss is not None:
+#    log_str += format_log(test_loss, 'test')
+#
+
+#logging(log_str)
+#logging('=' * 100)
