@@ -26,8 +26,8 @@ class Vocab(object):
         else:
             symbols = line.split(self.delimiter)
 
-        if add_double_eos: # lm1b
-            return ['<S>'] + symbols + ['<S>']
+        if add_double_eos:
+            return ['<eos>'] + symbols + ['<eos>']
         elif add_eos:
             return symbols + ['<eos>']
         else:
@@ -89,7 +89,7 @@ class Vocab(object):
             print('final vocab size {} from {} unique tokens'.format(
                 len(self), len(self.counter)))
 
-    def encode_file(self, path, ordered=False, verbose=False, add_eos=True,
+    def encode_file(self, path, ordered=False, verbose=False, add_eos=False,
             add_double_eos=False):
         if verbose: print('encoding file {} ...'.format(path))
         assert os.path.exists(path)
@@ -98,8 +98,12 @@ class Vocab(object):
             for idx, line in enumerate(f):
                 if verbose and idx > 0 and idx % 500000 == 0:
                     print('    line {}'.format(idx))
-                symbols = self.tokenize(line, add_eos=add_eos,
-                    add_double_eos=add_double_eos)
+                if idx == 0:
+                    symbols = self.tokenize(line, add_eos=add_eos,
+                                            add_double_eos=True)
+                else:
+                    symbols = self.tokenize(line, add_eos=add_eos,
+                                            add_double_eos=add_double_eos)
                 encoded.append(self.convert_to_tensor(symbols))
 
         if ordered:

@@ -201,11 +201,11 @@ class Corpus(object):
 
         if self.dataset in ['ptb', 'wt2', 'wt103']:
             self.train = self.vocab.encode_file(
-                os.path.join(path, trainfname), ordered=True)
+                os.path.join(path, trainfname), ordered=True, add_eos=True)
             self.valid = self.vocab.encode_file(
-                os.path.join(path, validfname), ordered=True)
+                os.path.join(path, validfname), ordered=True, add_eos=True)
             self.test  = self.vocab.encode_file(
-                os.path.join(path, testfname), ordered=True)
+                os.path.join(path, testfname), ordered=True, add_eos=True)
         elif self.dataset in ['enwik8', 'text8']:
             self.train = self.vocab.encode_file(
                 os.path.join(path, trainfname), ordered=True, add_eos=False)

@@ -67,8 +67,8 @@ with open(os.path.join(args.work_dir, 'model.pt'), 'rb') as f:
 model.backward_compatible()
 model = model.to(device)
 
-logging('Evaluating with bsz {} tgt_len {} ext_len {} mem_len {} clamp_len {}'.format(
-       args.batch_size, args.tgt_len, args.ext_len, args.mem_len, args.clamp_len))
+#logging('Evaluating with bsz {} tgt_len {} ext_len {} mem_len {} clamp_len {}'.format(
+#       args.batch_size, args.tgt_len, args.ext_len, args.mem_len, args.clamp_len))
 
 model.reset_length(args.tgt_len, args.ext_len, args.mem_len)
 if args.clamp_len > 0:
@@ -108,25 +108,18 @@ def evaluate_words(eval_iter):
         for idx, (data, target, seq_len) in enumerate(eval_iter):
             ret = model(data, target, *mems)
             loss, mems = ret[0], ret[1:]
-            losses.append(loss)
+            words = corpus.vocab.get_symbols(target)
+            for wix,word in enumerate(words):
+                losses.append(str(word)+' '+str(loss[wix].item()))
         total_time = time.time() - start_time
     logging('Time : {:.2f}s, {:.2f}ms/segment'.format(
             total_time, 1000 * total_time / (idx+1)))
     return losses
 
-# Run on test data.
-#if args.split == 'all':
-#    test_loss = evaluate(te_iter)
-#    valid_loss = evaluate(va_iter)
-#elif args.split == 'valid':
-#    valid_loss = evaluate(va_iter)
-#    test_loss = None
-#elif args.split == 'test':
 logging('=' * 100)
-logging('Testing')
 test_losses = evaluate_words(te_iter)
 logging('=' * 100)
-logging('surp')
+logging('word surp')
 for loss in test_losses:
     logging(str(loss))
 
