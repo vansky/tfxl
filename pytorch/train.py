@@ -198,8 +198,8 @@ tr_iter = corpus.get_iterator('train', args.batch_size, args.tgt_len,
     device=device, ext_len=args.ext_len)
 va_iter = corpus.get_iterator('valid', eval_batch_size, args.eval_tgt_len,
     device=device, ext_len=args.ext_len)
-te_iter = corpus.get_iterator('test', eval_batch_size, args.eval_tgt_len,
-    device=device, ext_len=args.ext_len)
+#te_iter = corpus.get_iterator('test', eval_batch_size, args.eval_tgt_len,
+#    device=device, ext_len=args.ext_len)
 
 # adaptive softmax / embedding
 cutoffs, tie_projs = [], [False]
@@ -562,17 +562,18 @@ for epoch in itertools.count(start=1):
 #    logging('Exiting from training early')
 
 # Load the best saved model.
-with open(os.path.join(args.work_dir, 'model.pt'), 'rb') as f:
-    model = torch.load(f)
-para_model = model.to(device)
+#with open(os.path.join(args.work_dir, 'model.pt'), 'rb') as f:
+#    model = torch.load(f)
+#para_model = model.to(device)
 
-# Run on test data.
-test_loss = evaluate(te_iter)
-logging('=' * 100)
-if args.dataset in ['enwik8', 'text8']:
-    logging('| End of training | test loss {:5.2f} | test bpc {:9.5f}'.format(
-        test_loss, test_loss / math.log(2)))
-else:
-    logging('| End of training | test loss {:5.2f} | test ppl {:9.3f}'.format(
-        test_loss, math.exp(test_loss)))
-logging('=' * 100)
+## Run on test data.
+#test_loss = evaluate(te_iter)
+#logging('=' * 100)
+#if args.dataset in ['enwik8', 'text8']:
+#    logging('| End of training | test loss {:5.2f} | test bpc {:9.5f}'.format(
+#        test_loss, test_loss / math.log(2)))
+#else:
+#    logging('| End of training | test loss {:5.2f} | test ppl {:9.3f}'.format(
+#        test_loss, math.exp(test_loss)))
+#logging('=' * 100)
+#
