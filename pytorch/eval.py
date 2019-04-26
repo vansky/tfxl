@@ -43,6 +43,9 @@ parser.add_argument('--no_log', action='store_true',
                     help='do not log the eval result')
 parser.add_argument('--same_length', action='store_true',
                     help='set same length attention with masking')
+parser.add_argument('--vocab_file', type=str, default=None,
+                    help='name of vocab file')
+
 args = parser.parse_args()
 assert args.ext_len >= 0, 'extended context length must be non-negative'
 
@@ -53,17 +56,24 @@ logging = get_logger(os.path.join(args.work_dir, 'log.txt'),
                      log_=not args.no_log)
 
 # Load dataset
-corpus = get_lm_corpus(args.data, args.dataset, args.trainfname, args.validfname, args.testfname)
+corpus = get_lm_corpus(args.data, args.dataset, args.trainfname, args.validfname, args.testfname, vocab_file=args.vocab_file)
 ntokens = len(corpus.vocab)
+args.n_token = ntokens
 
-va_iter = corpus.get_iterator('valid', args.batch_size, args.tgt_len,
-    device=device, ext_len=args.ext_len)
-te_iter = corpus.get_iterator('test', args.batch_size, args.tgt_len,
+#va_iter = corpus.get_iterator('valid', args.batch_size, args.tgt_len,
+#    device=device, ext_len=args.ext_len)
+te_iters = corpus.get_sent_iterators('test', args.batch_size, args.tgt_len,
     device=device, ext_len=args.ext_len)
 
 # Load the best saved model.
 with open(os.path.join(args.work_dir, 'model.pt'), 'rb') as f:
-    model = torch.load(f)
+    if args.cuda:
+        model = torch.load(f)
+    else:
+        model = torch.load(f, map_location='cpu')
+        if isinstance(model, torch.nn.DataParallel):
+            #from collections import OrderedDict
+            model = model.module
 model.backward_compatible()
 model = model.to(device)
 
@@ -117,7 +127,9 @@ def evaluate_words(eval_iter):
     return losses
 
 logging('=' * 100)
-test_losses = evaluate_words(te_iter)
+test_losses = []
+for te_iter in te_iters:
+    test_losses.extend(evaluate_words(te_iter))
 logging('=' * 100)
 logging('word surp')
 for loss in test_losses:

@@ -205,7 +205,7 @@ class Corpus(object):
             self.valid = self.vocab.encode_file(
                 os.path.join(path, validfname), ordered=True, add_eos=True)
             self.test  = self.vocab.encode_file(
-                os.path.join(path, testfname), ordered=True, add_eos=True)
+                os.path.join(path, testfname), ordered=False, add_eos=True)
         elif self.dataset in ['enwik8', 'text8']:
             self.train = self.vocab.encode_file(
                 os.path.join(path, trainfname), ordered=True, add_eos=False)
@@ -246,33 +246,56 @@ class Corpus(object):
                 data_iter = LMOrderedIterator(data, *args, **kwargs)
         return data_iter
 
+    def get_sent_iterators(self, split, *args, **kwargs):
+        iters = []
+        if split == 'train':
+            if self.dataset == 'lm1b':
+                kwargs['shuffle'] = True
+                data_iter = LMMultiFileIterator(self.train, self.vocab, *args, **kwargs)
+            elif self.dataset in ['ptb', 'wt2', 'wt103', 'enwik8', 'text8']:
+                data_iter = LMOrderedIterator(self.train, *args, **kwargs)
+            else:
+                data_iter = LMOrderedIterator(self.train, *args, **kwargs)
+        elif split in ['valid', 'test']:
+            data = self.valid if split == 'valid' else self.test
+            if self.dataset == 'lm1b':
+                for line in data:
+                    iters.append(LMShuffledIterator(line, *args, **kwargs))
+            elif self.dataset in ['ptb', 'wt2', 'wt103', 'enwik8', 'text8']:
+                for line in data:
+                    iters.append(LMOrderedIterator(line, *args, **kwargs))
+            else:
+                for line in data:
+                    iters.append(LMOrderedIterator(line, *args, **kwargs))
+        return iters
+
 
 def get_lm_corpus(datadir, dataset, trainfname, validfname, testfname, *args, **kwargs):
-    fn = os.path.join(datadir, 'cache.pt')
-    if os.path.exists(fn):
-        print('Loading cached dataset...')
-        corpus = torch.load(fn)
+    #fn = os.path.join(datadir, 'cache.pt')
+    #if os.path.exists(fn):
+    #    print('Loading cached dataset...')
+    #    corpus = torch.load(fn)
+    #else:
+    print('Producing dataset {}...'.format(dataset))
+    #kwargs = {}
+    if dataset in ['wt103', 'wt2']:
+        kwargs['special'] = ['<eos>','<unk>']
+        kwargs['lower_case'] = False
+    elif dataset == 'ptb':
+        kwargs['special'] = ['<eos>']
+        kwargs['lower_case'] = True
+    elif dataset == 'lm1b':
+        kwargs['special'] = []
+        kwargs['lower_case'] = False
+        kwargs['vocab_file'] = os.path.join(datadir, '1b_word_vocab.txt')
+    elif dataset in ['enwik8', 'text8']:
+        pass
     else:
-        print('Producing dataset {}...'.format(dataset))
-        kwargs = {}
-        if dataset in ['wt103', 'wt2']:
-            kwargs['special'] = ['<eos>','<unk>']
-            kwargs['lower_case'] = False
-        elif dataset == 'ptb':
-            kwargs['special'] = ['<eos>']
-            kwargs['lower_case'] = True
-        elif dataset == 'lm1b':
-            kwargs['special'] = []
-            kwargs['lower_case'] = False
-            kwargs['vocab_file'] = os.path.join(datadir, '1b_word_vocab.txt')
-        elif dataset in ['enwik8', 'text8']:
-            pass
-        else:
-            kwargs['special'] = ['<eos>']
-            kwargs['lower_case'] = False
+        kwargs['special'] = ['<eos>']
+        kwargs['lower_case'] = False
 
-        corpus = Corpus(datadir, dataset, trainfname, validfname, testfname, **kwargs)
-        torch.save(corpus, fn)
+    corpus = Corpus(datadir, dataset, trainfname, validfname, testfname, *args, **kwargs)
+    #torch.save(corpus, fn)
 
     return corpus
 

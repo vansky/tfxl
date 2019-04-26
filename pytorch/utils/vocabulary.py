@@ -4,15 +4,18 @@ from collections import Counter, OrderedDict
 import torch
 
 class Vocab(object):
-    def __init__(self, special=[], min_freq=0, max_size=None, lower_case=True,
-                 delimiter=None, vocab_file=None):
+    def __init__(self, special=[], min_freq=0, max_size=None, 
+                 delimiter=None, **kwargs): #, vocab_file=None): lower_case=True,
         self.counter = Counter()
         self.special = special
         self.min_freq = min_freq
         self.max_size = max_size
-        self.lower_case = lower_case
         self.delimiter = delimiter
-        self.vocab_file = vocab_file
+        if 'vocab_file' in kwargs:
+            self.vocab_file = kwargs['vocab_file']
+        else:
+            self.vocab_file = None
+        self.lower_case = True
 
     def tokenize(self, line, add_eos=False, add_double_eos=False):
         line = line.strip()
@@ -98,12 +101,12 @@ class Vocab(object):
             for idx, line in enumerate(f):
                 if verbose and idx > 0 and idx % 500000 == 0:
                     print('    line {}'.format(idx))
-                if idx == 0:
-                    symbols = self.tokenize(line, add_eos=add_eos,
+#                if idx == 0:
+                symbols = self.tokenize(line, add_eos=add_eos,
                                             add_double_eos=True)
-                else:
-                    symbols = self.tokenize(line, add_eos=add_eos,
-                                            add_double_eos=add_double_eos)
+#                else:
+#                    symbols = self.tokenize(line, add_eos=add_eos,
+#                                            add_double_eos=add_double_eos)
                 encoded.append(self.convert_to_tensor(symbols))
 
         if ordered:
