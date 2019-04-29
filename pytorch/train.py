@@ -427,7 +427,9 @@ def evaluate(eval_iter):
 def train():
     # Turn on training mode which enables dropout.
     global train_step, train_loss, best_val_loss, eval_start_time, log_start_time
-    prev_val_loss, prev2_val_loss, prev3_val_loss = None
+    prev_val_loss = None
+    prev2_val_loss = None
+    prev3_val_loss = None
     model.train()
     if args.batch_chunk > 1:
         mems = [tuple() for _ in range(args.batch_chunk)]
