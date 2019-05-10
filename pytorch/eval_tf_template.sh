@@ -31,5 +31,5 @@ time python eval.py \
 	--validfname all_test_sents.txt \
 	--testfname all_test_sents.txt \
 	--split test \
-	--vocab_file \
+	--vocab_file glove.num_unk.vocab \
 	--work_dir MODEL_SUPER_DIR/MODEL_SUB_DIR/
