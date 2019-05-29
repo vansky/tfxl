@@ -1,15 +1,15 @@
 #!/bin/bash
 #SBATCH --partition=gpuk80
 #SBATCH --exclude=gpu019
-#SBATCH --gres=gpu:4
-#SBATCH --ntasks-per-node=2
+#SBATCH --gres=gpu:1
+#SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=6
 #SBATCH --job-name=TFeval
 #SBATCH --mail-type=end
 #SBATCH --mail-user=EMAIL
 #SBATCH --output=eval_wt103.out
 #SBATCH --error=eval_wt103.err
-#SBATCH --time=0-2:00:0
+#SBATCH --time=0-0:30:0
 
 module load python/3.6-anaconda
 source activate pytorch-1.0.0
