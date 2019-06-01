@@ -117,5 +117,3 @@ time python train.py \
         --lr 0.00025 \
         --warmup_step 0 \
         --max_step 200000
-#        --multi_gpu
-#--max_step 200000 \

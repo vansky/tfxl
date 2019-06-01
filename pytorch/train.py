@@ -427,9 +427,7 @@ def evaluate(eval_iter):
 def train():
     # Turn on training mode which enables dropout.
     global train_step, train_loss, best_val_loss, eval_start_time, log_start_time
-    prev_val_loss = None
-    prev2_val_loss = None
-    prev3_val_loss = None
+    no_improvement = 0
     model.train()
     if args.batch_chunk > 1:
         mems = [tuple() for _ in range(args.batch_chunk)]
@@ -518,27 +516,25 @@ def train():
             logging('-' * 100)
             # Save the model if the validation loss is the best we've seen so far.
             if not best_val_loss or val_loss < best_val_loss:
+                no_improvement = 0
                 if not args.debug:
                     with open(os.path.join(args.work_dir, 'model.pt'), 'wb') as f:
                         torch.save(model, f)
                     with open(os.path.join(args.work_dir, 'optimizer.pt'), 'wb') as f:
                         torch.save(optimizer.state_dict(), f)
                 best_val_loss = val_loss
+            else:
+                # Anneal the learning rate if no more improvement in the validation dataset.
+                no_improvement += 1
+                if no_improvement >= 3:
+                    print('Covergence achieved! Ending training early')
+                    break
 
             # dev-performance based learning rate annealing
             if args.scheduler == 'dev_perf':
                 scheduler.step(val_loss)
                 if args.sample_softmax > 0:
                     scheduler_sparse.step(val_loss)
-
-            eval_start_time = time.time()
-            if prev_val_loss and prev2_val_loss and prev3_val_loss:
-                if val_loss >= prev3_val_loss and val_loss >= prev2_val_loss and val_loss >= prev_val_loss:
-                    logging("Converged early")
-                    break
-            prev3_val_loss = prev_val_loss
-            prev2_val_loss = prev_val_loss
-            prev_val_loss = val_loss            
 
         if train_step == args.max_step:
             break
