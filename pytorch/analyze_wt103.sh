@@ -16,16 +16,7 @@
 
 module load python/3.6-anaconda
 source activate pytorch-1.0.0
-
-#EXCLUDE: git python
 module load cuda/8.0
-
-#Lflag=$SLURM_ARRAY_TASK_ID
-
-#seed=$(($Lflag % 10));
-#corpussize='200k';
-#nhid=200;
-#seed=$RANDOM;
 
 Lflag=$SLURM_ARRAY_TASK_ID
 
@@ -71,27 +62,10 @@ elif [[ $(($Lflag % 10)) -eq 4 ]]; then
     nhid='1600';
 fi
 
-# Train
-##        --data ../data/rnn_tf_cmp/ \
-##	--trainfname wiki103_${corpussize}_${corpusvar}.train \
-##	--validfname wiki103.valid \
-##	--testfname sample.test \
-##        --dataset custom \
-#        --n_layer 2 \
-#        --d_model ${nhid} \
-#        --n_head 4 \
-#        --d_head 16 \
-#        --d_inner 100 \
-#        --dropout 0.2 \
-#        --dropatt 0.0 \
-#        --optim adam \
-#        --lr 1 \
-#        --warmup_step 10000 \
-
 workdir="LMv-${nlayer}-${corpussize}-${nhid}-${Lflag}"
 subdir=$(find ./${workdir}-wt103/*-wt103 -maxdepth 1 -type d -name '[^.]?*' -printf %f -quit)
 subsubdir=$(find ./${workdir}-wt103/${subdir}/* -maxdepth 1 -type d -name '[^.]?*' -printf %f -quit)
 
 python filter_tf_output.py eval_output/${workdir}.output > eval_output/${workdir}-filt.output
-python ../../LM_syneval/src/LM_eval-score.py --output_file eval_output/${workdir}-filt.output
+python ../../LM_syneval/src/LM_eval-score.py --model_type tf --output_file eval_output/${workdir}-filt.output
 python ../../LM_syneval/src/analyze_results.py --results_file eval_output/${workdir}-filt_results.pickle --model_type rnn --mode overall --out_dir results_${workdir}
