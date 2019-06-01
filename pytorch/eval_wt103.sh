@@ -11,7 +11,7 @@
 #SBATCH --mail-user=vansky@jhu.edu
 #SBATCH --output=logs/eval_wt103.%a.out
 #SBATCH --error=logs/eval_wt103.%a.err
-#SBATCH --array=0-4,10-14,20-24,30-34,40-44,50-54,60-64,70-74,80-84
+#SBATCH --array=50,63,64,73,80 #,81,83,84 #0-4,10-14,20-24,30-34,40-44,50-54,60-64,70-74,80-84
 
 module load python/3.6-anaconda
 source activate pytorch-1.0.0
@@ -70,26 +70,9 @@ elif [[ $(($Lflag % 10)) -eq 4 ]]; then
     nhid='1600';
 fi
 
-# Train
-##        --data ../data/rnn_tf_cmp/ \
-##	--trainfname wiki103_${corpussize}_${corpusvar}.train \
-##	--validfname wiki103.valid \
-##	--testfname sample.test \
-##        --dataset custom \
-#        --n_layer 2 \
-#        --d_model ${nhid} \
-#        --n_head 4 \
-#        --d_head 16 \
-#        --d_inner 100 \
-#        --dropout 0.2 \
-#        --dropatt 0.0 \
-#        --optim adam \
-#        --lr 1 \
-#        --warmup_step 10000 \
-
 workdir="LMv-${nlayer}-${corpussize}-${nhid}-${Lflag}"
-subdir=$(find ./${workdir}-wt103/*-wt103 -maxdepth 1 -type d -name '[^.]?*' -printf %f -quit)
-subsubdir=$(find ./${workdir}-wt103/${subdir}/* -maxdepth 1 -type d -name '[^.]?*' -printf %f -quit)
+subdir=$(find ./${workdir}-wt103/* -maxdepth 1 -type d -name '[^.]?*' -printf %f -quit)
+#subsubdir=$(find ./${workdir}-wt103/${subdir}/* -maxdepth 1 -type d -name '[^.]?*' -printf %f -quit)
 
 time python eval.py \
         --cuda \
@@ -103,17 +86,5 @@ time python eval.py \
 	--validfname all_test_sents.txt \
 	--testfname all_test_sents.txt \
 	--split test \
-	--work_dir ${workdir}-wt103/${subdir}/${subsubdir}/ > eval_output/${workdir}.output
-
-#        --cuda \
-#--clamp_len 400 \
-#if [[ $1 == 'train' ]]; then
-#	--same_length \
-#        --batch_size 60 \
-#        --gpu0_bsz 4
-#        --tgt_len 150 \
-#        --mem_len 150 \
-#        --eval_tgt_len 150 \
-#        ${@:2}
-
-#time python eval.py  --dataset wt103 --tgt_len 1 --mem_len 150 --clamp_len 400 --same_length --split test --trainfname wiki.train.tokens --validfname wiki.valid.tokens --testfname small.test.tokens --work_dir 
+	--work_dir ${workdir}-wt103/${subdir}/ > eval_output/${workdir}.output
+	#--work_dir ${workdir}-wt103/${subdir}/${subsubdir}/ > eval_output/${workdir}.output
