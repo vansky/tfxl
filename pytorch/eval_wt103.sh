@@ -11,20 +11,11 @@
 #SBATCH --mail-user=vansky@jhu.edu
 #SBATCH --output=logs/eval_wt103.%a.out
 #SBATCH --error=logs/eval_wt103.%a.err
-#SBATCH --array=50,63,64,73,80 #,81,83,84 #0-4,10-14,20-24,30-34,40-44,50-54,60-64,70-74,80-84
-
+#SBATCH --array=400-404,410-414,420-424,430-434,440-444,450-454,460-464,470-474,480-484
+#80-84
 module load python/3.6-anaconda
 source activate pytorch-1.0.0
-
-#EXCLUDE: git python
 module load cuda/8.0
-
-#Lflag=$SLURM_ARRAY_TASK_ID
-
-#seed=$(($Lflag % 10));
-#corpussize='200k';
-#nhid=200;
-#seed=$RANDOM;
 
 Lflag=$SLURM_ARRAY_TASK_ID
 
@@ -33,9 +24,11 @@ nlayer=$(($Lflag % 1000 / 100 + 2));
 if [[ $(($Lflag / 1000)) -eq 0 ]]; then
     attn_type=2;
     mem_len=0;
+    dir_prefix='LMv';
 elif [[ $(($Lflag / 1000)) -eq 1 ]]; then
     attn_type=0;
     mem_len=150;
+    dir_prefix='LMvxl';
 fi
 
 if [[ $(($Lflag % 100 / 10)) -eq 0 ]]; then
@@ -70,8 +63,8 @@ elif [[ $(($Lflag % 10)) -eq 4 ]]; then
     nhid='1600';
 fi
 
-workdir="LMv-${nlayer}-${corpussize}-${nhid}-${Lflag}"
-subdir=$(find ./${workdir}-wt103/* -maxdepth 1 -type d -name '[^.]?*' -printf %f -quit)
+workdir="${dir_prefix}-${nlayer}-${corpussize}-${nhid}-${Lflag}"
+subdir=$(find ./cont-${workdir}-wt103/* -maxdepth 1 -type d -name '[^.]?*' -printf %f -quit)
 #subsubdir=$(find ./${workdir}-wt103/${subdir}/* -maxdepth 1 -type d -name '[^.]?*' -printf %f -quit)
 
 time python eval.py \
@@ -86,5 +79,5 @@ time python eval.py \
 	--validfname all_test_sents.txt \
 	--testfname all_test_sents.txt \
 	--split test \
-	--work_dir ${workdir}-wt103/${subdir}/ > eval_output/${workdir}.output
+	--work_dir cont-${workdir}-wt103/${subdir}/ > eval_output/${workdir}.output
 	#--work_dir ${workdir}-wt103/${subdir}/${subsubdir}/ > eval_output/${workdir}.output

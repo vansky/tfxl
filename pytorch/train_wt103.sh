@@ -11,7 +11,9 @@
 #SBATCH --mail-user=vansky@jhu.edu
 #SBATCH --output=logs/train_wt103.%a.out
 #SBATCH --error=logs/train_wt103.%a.err
-#SBATCH --array=400-404,410-414,420-424,430-434,440-444,450-454,460-464,470-474,480-484
+#SBATCH --array=473 #444,461,462,464,480,481
+#1000-1004,1010-1014,1020-1024,1030-1034,1040-1044,1050-1054,1060-1064,1070-1074,1080-1084
+#echo SBATCH --array=1400-1404,1410-1414,1420-1424,1430-1434,1440-1444,1450-1454,1460-1464,1470-1474,1480-1484
 
 module load python/3.6-anaconda
 source activate pytorch-1.0.0
@@ -23,15 +25,15 @@ Lflag=$SLURM_ARRAY_TASK_ID
 
 nlayer=$(($Lflag % 1000 / 100 + 2));
 
-
 if [[ $(($Lflag / 1000)) -eq 0 ]]; then
     attn_type=2;
     mem_len=0;
+    dir_prefix='LMv';
 elif [[ $(($Lflag / 1000)) -eq 1 ]]; then
     attn_type=0;
     mem_len=150;
+    dir_prefix='LMvxl';
 fi
-
 
 if [[ $(($Lflag % 100 / 10)) -eq 0 ]]; then
     corpussize='20';
@@ -99,7 +101,7 @@ time python train.py \
         --gpu0_bsz 4 \
 	--attn_type ${attn_type} \
 	--seed ${seed} \
-	--work_dir LMv-${nlayer}-${corpussize}-${nhid}-${Lflag} \
+	--work_dir ${dir_prefix}-${nlayer}-${corpussize}-${nhid}-${Lflag} \
         --data ../data/wikitext-103-${corpussize}/ \
         --dataset wt103 \
         --n_layer ${nlayer} \
@@ -113,5 +115,3 @@ time python train.py \
         --lr 0.00025 \
         --warmup_step 0 \
         --max_step 200000
-#        --multi_gpu
-#--max_step 200000 \
